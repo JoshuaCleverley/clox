@@ -17,6 +17,7 @@ static void repl() {
             break;
         }
 
+        line[100] = '\0';
         interpret(line);
     }
 }
