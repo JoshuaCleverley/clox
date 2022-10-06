@@ -22,15 +22,16 @@ typedef struct {
 
 typedef enum {
     PREC_NONE,
-    PREC_ASSIGNMENT,
-    PREC_OR,
-    PREC_EQUALITY,
-    PREC_COMPARISON,
-    PREC_TERM,
-    PREC_FACTOR,
-    PREC_UNARY,
-    PREC_CALL,
-    PREC_PRIMARY,
+    PREC_ASSIGNMENT,  // =
+    PREC_OR,          // or
+    PREC_AND,         // and
+    PREC_EQUALITY,    // == !=
+    PREC_COMPARISON,  // < > <= >=
+    PREC_TERM,        // + -
+    PREC_FACTOR,      // * /
+    PREC_UNARY,       // ! -
+    PREC_CALL,        // . ()
+    PREC_PRIMARY
 } Precedence;
 
 typedef void (*ParseFn)();
@@ -56,7 +57,7 @@ static void errorAt(Token * token, const char* message) {
     if (token->type == TOKEN_EOF) {
         fprintf(stderr, " at end");
     } else if (token->type == TOKEN_ERROR) {
-
+        // noting
     } else {
         fprintf(stderr, " at '%.*s'", token->length, token->start);
     }
@@ -135,6 +136,20 @@ static void expression();
 static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
 
+static void binary() {
+    TokenType operatorType = parser.previous.type;
+    ParseRule* rule = getRule(operatorType);
+    parsePrecedence((Precedence)(rule->precedence + 1));
+
+    switch (operatorType) {
+        case TOKEN_PLUS:  emitByte(OP_ADD); break;
+        case TOKEN_MINUS: emitByte(OP_SUBTRACT); break;
+        case TOKEN_STAR:  emitByte(OP_MULTIPLY); break;
+        case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
+        default: return; // Unreachable
+    }
+}
+
 static void grouping() {
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression");
@@ -152,20 +167,6 @@ static void unary() {
 
     switch(operatorType) {
         case TOKEN_MINUS: emitByte(OP_NEGATE); break;
-        default: return; // Unreachable
-    }
-}
-
-static void binary() {
-    TokenType operatorType = parser.previous.type;
-    ParseRule* rule = getRule(operatorType);
-    parsePrecedence((Precedence)(rule->precedence + 1));
-
-    switch (operatorType) {
-        case TOKEN_PLUS:  emitByte(OP_ADD); break;
-        case TOKEN_MINUS: emitByte(OP_SUBTRACT); break;
-        case TOKEN_STAR:  emitByte(OP_MULTIPLY); break;
-        case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
         default: return; // Unreachable
     }
 }
@@ -198,7 +199,7 @@ ParseRule rules[] = {
         [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
         [TOKEN_FALSE]         = {NULL,     NULL,   PREC_NONE},
         [TOKEN_FOR]           = {NULL,     NULL,   PREC_NONE},
-        [TOKEN_FN]            = {NULL,     NULL,   PREC_NONE},
+        [TOKEN_FUN]           = {NULL,     NULL,   PREC_NONE},
         [TOKEN_IF]            = {NULL,     NULL,   PREC_NONE},
         [TOKEN_NIL]           = {NULL,     NULL,   PREC_NONE},
         [TOKEN_OR]            = {NULL,     NULL,   PREC_NONE},
@@ -207,11 +208,13 @@ ParseRule rules[] = {
         [TOKEN_SUPER]         = {NULL,     NULL,   PREC_NONE},
         [TOKEN_THIS]          = {NULL,     NULL,   PREC_NONE},
         [TOKEN_TRUE]          = {NULL,     NULL,   PREC_NONE},
-        [TOKEN_LET]           = {NULL,     NULL,   PREC_NONE},
+        [TOKEN_VAR]           = {NULL, NULL, PREC_NONE},
         [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
         [TOKEN_ERROR]         = {NULL,     NULL,   PREC_NONE},
         [TOKEN_EOF]           = {NULL,     NULL,   PREC_NONE},
 };
+
+
 
 static ParseRule* getRule(TokenType type) {
     return &rules[type];
@@ -241,6 +244,7 @@ static void expression() {
 
 bool compile(const char* source, Chunk* chunk) {
     initScanner(source);
+
 
     compilingChunk = chunk;
     parser.hadError  = false;

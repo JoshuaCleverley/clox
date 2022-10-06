@@ -108,6 +108,8 @@ static TokenType checkKeyword(int start, int length, const char* rest, TokenType
         memcmp(scanner.start + start, rest, length) == 0) {
         return type;
     }
+
+    return TOKEN_IDENTIFIER;
 }
 
 static TokenType identifierType() {
@@ -120,9 +122,10 @@ static TokenType identifierType() {
                 switch (scanner.start[1]) {
                     case 'a': return checkKeyword(2, 3, "lse", TOKEN_FALSE);
                     case 'o': return checkKeyword(2, 1, "r", TOKEN_FOR);
-                    case 'u': return checkKeyword(2, 1, "n", TOKEN_FN);
+                    case 'u': return checkKeyword(2, 1, "n", TOKEN_FUN);
                 }
             }
+            break;
         case 'i': return checkKeyword(1, 1, "f", TOKEN_IF);
         case 'n': return checkKeyword(1, 2, "il", TOKEN_NIL);
         case 'o': return checkKeyword(1, 1, "r", TOKEN_OR);
@@ -137,7 +140,7 @@ static TokenType identifierType() {
                 }
             }
             break;
-        case 'l': return checkKeyword(1, 2, "et", TOKEN_LET);
+        case 'v': return checkKeyword(1, 2, "ar", TOKEN_VAR);
         case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
     }
     return TOKEN_IDENTIFIER;
@@ -153,7 +156,7 @@ static Token number() {
 
     if (peek() == '.' && isDigit(peekNext())) {
         advance();
-        while(isDigit(peek())) advance;
+        while(isDigit(peek())) advance();
     }
 
     return makeToken(TOKEN_NUMBER);
@@ -202,5 +205,8 @@ Token scanToken() {
         case '"': return string();
     }
 
+    if (c == '\0') {
+        printf("WTF");
+    }
     return errorToken("Unexpected character");
 }

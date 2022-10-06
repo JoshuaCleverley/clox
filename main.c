@@ -17,7 +17,6 @@ static void repl() {
             break;
         }
 
-        line[100] = '\0';
         interpret(line);
     }
 }
@@ -70,6 +69,7 @@ int main(int argc, const char* argv[]) {
         runFile(argv[1]);
     } else {
         fprintf(stderr, "Usage: clos [path]");
+        exit(64);
     }
 
     freeVM();
